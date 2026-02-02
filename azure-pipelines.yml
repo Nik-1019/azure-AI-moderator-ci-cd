@@ -5,7 +5,6 @@ pool:
   name: 'Default'
 
 variables:
-  pythonVersion: '3.11'
   stagingApp: 'staging-backend-stream'
   productionApp: 'backend-stream'
 
@@ -16,11 +15,6 @@ stages:
   - job: BuildTest
     displayName: 'Build and Test Job'
     steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(pythonVersion)'
-      displayName: 'Use Python $(pythonVersion)'
-
     - script: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
@@ -53,11 +47,6 @@ stages:
           steps:
           - checkout: self
           
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '$(pythonVersion)'
-            displayName: 'Use Python $(pythonVersion)'
-
           - script: |
               python -m pip install --upgrade pip
               pip install -r requirements.txt
@@ -82,7 +71,7 @@ stages:
     displayName: 'Integration Test Job'
     steps:
     - script: |
-        Start-Sleep -Seconds 30
+        sleep 30
         curl -f https://$(stagingApp).azurewebsites.net/api/health
       displayName: 'Wait and test staging health endpoint'
 
@@ -100,11 +89,6 @@ stages:
           steps:
           - checkout: self
           
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '$(pythonVersion)'
-            displayName: 'Use Python $(pythonVersion)'
-
           - script: |
               python -m pip install --upgrade pip
               pip install -r requirements.txt
