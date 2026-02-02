@@ -16,13 +16,14 @@ stages:
     displayName: 'Build and Test Job'
     steps:
     - script: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest
+        python3 --version || python --version
+        python3 -m pip install --upgrade pip || python -m pip install --upgrade pip
+        python3 -m pip install -r requirements.txt || python -m pip install -r requirements.txt
+        python3 -m pip install pytest || python -m pip install pytest
       displayName: 'Install dependencies'
 
     - script: |
-        pytest tests/ --junitxml=test-results.xml
+        python3 -m pytest tests/ --junitxml=test-results.xml || python -m pytest tests/ --junitxml=test-results.xml
       displayName: 'Run tests'
       continueOnError: true
 
@@ -48,8 +49,9 @@ stages:
           - checkout: self
           
           - script: |
-              python -m pip install --upgrade pip
-              pip install -r requirements.txt
+              python3 --version || python --version
+              python3 -m pip install --upgrade pip || python -m pip install --upgrade pip
+              python3 -m pip install -r requirements.txt || python -m pip install -r requirements.txt
             displayName: 'Install dependencies'
 
           - task: AzureCLI@2
@@ -90,8 +92,9 @@ stages:
           - checkout: self
           
           - script: |
-              python -m pip install --upgrade pip
-              pip install -r requirements.txt
+              python3 --version || python --version
+              python3 -m pip install --upgrade pip || python -m pip install --upgrade pip
+              python3 -m pip install -r requirements.txt || python -m pip install -r requirements.txt
             displayName: 'Install dependencies'
 
           - task: AzureCLI@2
