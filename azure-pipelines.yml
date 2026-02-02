@@ -1,0 +1,121 @@
+trigger:
+- main
+
+pool:
+  name: 'streaming-agent'
+
+variables:
+  pythonVersion: '3.11'
+  stagingApp: 'staging-backend-stream'
+  productionApp: 'backend-stream'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildTest
+    displayName: 'Build and Test Job'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Use Python $(pythonVersion)'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
+      displayName: 'Install dependencies'
+
+    - script: |
+        pytest tests/ --junitxml=test-results.xml
+      displayName: 'Run tests'
+      continueOnError: true
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'test-results.xml'
+        testRunTitle: 'Python Tests'
+      displayName: 'Publish test results'
+      condition: always()
+
+- stage: DeployStaging
+  displayName: 'Deploy to Staging'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: DeployStaging
+    displayName: 'Deploy to Staging'
+    environment: 'staging'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python $(pythonVersion)'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+            displayName: 'Install dependencies'
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'Azure subscription 1 (b5b7b8e2-8ec3-47fa-a9b6-f7bdf597a8e1)'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                npm install -g azure-functions-core-tools@4 --unsafe-perm true
+                func azure functionapp publish $(stagingApp) --python
+            displayName: 'Deploy to Azure Functions Staging'
+
+- stage: IntegrationTests
+  displayName: 'Integration Tests'
+  dependsOn: DeployStaging
+  condition: succeeded()
+  jobs:
+  - job: IntegrationTest
+    displayName: 'Integration Test Job'
+    steps:
+    - script: |
+        Start-Sleep -Seconds 30
+        curl -f https://$(stagingApp).azurewebsites.net/api/health
+      displayName: 'Wait and test staging health endpoint'
+
+- stage: DeployProduction
+  displayName: 'Deploy to Production'
+  dependsOn: IntegrationTests
+  condition: succeeded()
+  jobs:
+  - deployment: DeployProd
+    displayName: 'Deploy to Production'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python $(pythonVersion)'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+            displayName: 'Install dependencies'
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'Azure subscription 1 (b5b7b8e2-8ec3-47fa-a9b6-f7bdf597a8e1)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                npm install -g azure-functions-core-tools@4 --unsafe-perm true
+                func azure functionapp publish $(productionApp) --python
+            displayName: 'Deploy to Azure Functions'
