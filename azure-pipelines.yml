@@ -16,10 +16,27 @@ stages:
     displayName: 'Build and Test Job'
     steps:
     - script: |
-        python3 --version || python --version
-        python3 -m pip install --upgrade pip || python -m pip install --upgrade pip
-        python3 -m pip install -r requirements.txt || python -m pip install -r requirements.txt
-        python3 -m pip install pytest || python -m pip install pytest
+        which python3 || which python || echo "Python not found"
+        ls -la
+        cat requirements.txt
+      displayName: 'Debug environment'
+      
+    - script: |
+        if command -v python3 &> /dev/null; then
+          python3 -m pip install --user --upgrade pip
+          python3 -m pip install --user -r requirements.txt
+          python3 -m pip install --user pytest
+        elif command -v python &> /dev/null; then
+          python -m pip install --user --upgrade pip
+          python -m pip install --user -r requirements.txt
+          python -m pip install --user pytest
+        else
+          echo "No Python found, installing..."
+          sudo pacman -S python python-pip --noconfirm
+          python -m pip install --user --upgrade pip
+          python -m pip install --user -r requirements.txt
+          python -m pip install --user pytest
+        fi
       displayName: 'Install dependencies'
 
     - script: |
