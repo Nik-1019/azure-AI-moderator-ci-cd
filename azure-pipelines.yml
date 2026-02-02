@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  name: 'streaming-agent'
+  name: 'Default'
 
 variables:
   pythonVersion: '3.11'
